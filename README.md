@@ -8,4 +8,7 @@ A database engine based on LSM-trees
   &emsp;<p></p>-delete data 
   &emsp;<p></p>-"select 1 row" query
 2. 2.0 version
-  &emsp;<p></p>-use hashmap to accelerate query
+  &emsp;<p></p>-use hashmap to accelerate select query
+  &emsp;<p></p>-package whole programs and offer api
+  
+  
