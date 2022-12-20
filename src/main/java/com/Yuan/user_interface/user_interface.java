@@ -45,8 +45,8 @@ public class user_interface {
             System.out.println("3. select key to see the value of it");
             System.out.println("you can also type 'end' to exit this program");
 
-            Path data_file = Paths.get(working_directory.toAbsolutePath().toString() + "/data_file");
-            if(!Files.exists(data_file)) Files.createFile(data_file);
+                Path data_file = Paths.get(working_directory.toAbsolutePath().toString() + "/data_file");
+                if(!Files.exists(data_file)) Files.createFile(data_file);
 
             while(true){
                 System.out.println("Your next move!");
