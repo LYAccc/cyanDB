@@ -10,17 +10,17 @@ public class Value {
         }
         command command_type; // can only be DELETE, SET
         String raw_value;
-        String key; // key associated to this value object
 
-        public Value(command c, String r, String key){
+        public Value(command c, String r){
                 command_type = c;
                 raw_value = r;
-                this.key = key;
+        }
+        public Value(command c){
+                command_type = c;
         }
 
-        public JSONObject tojason(){
+        public JSONObject to_json(){
                 JSONObject j = new JSONObject();
-                j.put("Key",key);
                 if(command_type.equals(command.SET)){
                         j.put("Command","SET");
                         j.put("Value",raw_value);
