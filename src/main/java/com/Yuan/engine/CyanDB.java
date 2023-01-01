@@ -32,19 +32,18 @@ public class CyanDB {
             this.dataBlocks = new TreeMap<>();
             this.tables = new TreeMap<>();
 //            initialize sparse_index
+            File directory = new File(this.working_directory);
+            File[] files = directory.listFiles();
+            if (files == null && files.length == 1){
+                return;
+            }
 
             File database_meta = new File(working_directory + "database_meta.meta");
-            if(database_meta.exists()){
-                RandomAccessFile file = new RandomAccessFile(database_meta,"rw");
-                file.seek(0);
-                int len = file.readInt();
-                file.seek(4);
-                byte[] b = new byte[len];
-                file.read(b);
-                JSONArray arr = new JSONObject(new String(b,StandardCharsets.UTF_8)).getJSONArray("files");
-                for (Object str: arr) {
-                    Long l = Long.valueOf((String)str);
-                    tables.put(l,new Table(working_directory + l + ".table"));
+            {
+                for (File file: files) {
+                    String tn = file.getAbsolutePath();
+                    Long table_name = Long.valueOf(tn.substring(tn.lastIndexOf("\\" ) + 1,tn.lastIndexOf(".table")));
+                    tables.put(table_name,new Table(file.getAbsolutePath()));
                 }
 
             }
@@ -120,7 +119,7 @@ public class CyanDB {
         }
         public void Set(String key, String value) throws IOException {
                 Value v;
-                 v = new Value(Value.command.SET, value);
+                v = new Value(Value.command.SET, value);
                 cache_table.put(key,v);
                 if(cache_table.size() >= store_size) write_to_disk(5);
         }

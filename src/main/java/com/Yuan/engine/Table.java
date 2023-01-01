@@ -21,9 +21,9 @@ public class Table {
         long file_len = file.length();
         file.seek(file_len - 12);
         long sparse_index_start = file.readLong();
-        file.seek(file_len-4);
-        int len = file.readInt();
-        byte[] stream = new byte[len];
+        file.seek(file_len-8);
+        long len = file.readLong();
+        byte[] stream = new byte[(int)len];
         file.seek(sparse_index_start);
         file.read(stream);
         JSONObject json = new JSONObject(new String(stream, StandardCharsets.UTF_8));
