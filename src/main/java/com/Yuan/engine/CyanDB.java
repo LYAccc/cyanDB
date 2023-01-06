@@ -17,12 +17,16 @@ public class CyanDB {
 
         String working_directory;
 
+        private TreeMap<String,Value> immutable_table;
 
         private TreeMap<String,Value> cache_table;
 
         private TreeMap<String,DataBlock> dataBlocks;
 
         private TreeMap<Long,Table> tables;
+
+
+
 
         private int store_size = 10;
 
@@ -58,49 +62,8 @@ public class CyanDB {
              return db_instance;
         }
 
-        public void modified_json(JSONObject json){ // change underling datastructure of json from map to linkedmap to preserve order
-            try{
-                Field changeMap = json.getClass().getDeclaredField("map");
-                changeMap.setAccessible(true);
-                changeMap.set(json, new LinkedHashMap<>());
-                changeMap.setAccessible(false);
-            }catch (IllegalAccessException | NoSuchFieldException e) {
-                System.out.println("damn,wrong!");
-            }
 
-        }
-        public void write_to_disk(int part_size) throws IOException {
-            long cur_time = System.currentTimeMillis();
-            RandomAccessFile file = new RandomAccessFile(working_directory+cur_time+".table","rw");
-            JSONObject jsondata = new JSONObject();
-            modified_json(jsondata);
-            String first_value_key = null; // record current first value as the index of the data block.
-            for (Map.Entry<String,Value> entry : cache_table.entrySet()) {
-                    jsondata.put(entry.getKey(),entry.getValue().to_json());
-                    if(first_value_key == null) first_value_key = entry.getKey();
-                    if(jsondata.length() > part_size){
-                            write_helper(file,jsondata,first_value_key);
-                            first_value_key = null;
-                    }
-            }
-            if(jsondata.length() > 0){
-                write_helper(file,jsondata,first_value_key);
-            }
-            // write sparse index info to file
-            for (Map.Entry<String,DataBlock> entry: dataBlocks.entrySet()) jsondata.put(entry.getKey(),entry.getValue().to_json());
-            byte[] databytes = jsondata.toString().getBytes(StandardCharsets.UTF_8);
-            long start = file.getFilePointer();
-            file.write(databytes);
-            //meta info will improve later
-            file.writeLong(start);
-            file.writeInt(databytes.length);
-            // clear;
-            cache_table.clear();
-            dataBlocks.clear();
-            //record table info
-            tables.put(cur_time,new Table(working_directory+cur_time+".table"));
 
-        }
         public Value get(String key) throws IOException {
                if(cache_table.containsKey(key)) return cache_table.get(key);
             for (Table t: tables.values()) {
@@ -109,19 +72,19 @@ public class CyanDB {
             }
                return null;
         }
-        public void write_helper(RandomAccessFile file, JSONObject jsondata, String first_value_key) throws IOException {
-            byte[] databytes = jsondata.toString().getBytes(StandardCharsets.UTF_8);
-            long start = file.getFilePointer();
-            int len = databytes.length;
-            file.write(databytes);
-            dataBlocks.put(first_value_key,new DataBlock(start,len));
-            jsondata.clear();
-        }
+
         public void Set(String key, String value) throws IOException {
                 Value v;
                 v = new Value(Value.command.SET, value);
                 cache_table.put(key,v);
-                if(cache_table.size() >= store_size) write_to_disk(5);
+                if(cache_table.size() >= store_size) {
+                    long cur_time = System.currentTimeMillis();
+                    Table new_table = new Table(working_directory+ cur_time +".level_0");
+                    new_table.write_to_disk(5,cache_table,dataBlocks);
+                    new_table.set_sparse_index();
+                    //record table info
+                    tables.put(cur_time,new_table);
+                }
         }
         public void Delete(String key){
                Value v = new Value(Value.command.DELETE);
