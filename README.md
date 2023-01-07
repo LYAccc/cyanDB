@@ -10,8 +10,11 @@ A database engine based on LSM-trees
 2. 2.0 version
   &emsp;<p></p>-finish set(),get() API
   &emsp;<p></p>-working on datafiles compactions.
-2. 3.0 version
-  &emsp;<p></p>-finish data files compactions.
+3. 3.0 version
+  &emsp;<p></p>-finish data files compactions. 
+4. 4.0 version
+  &emsp;<p></p>-explore more sychronized functionalities.
+  
  
 
   
