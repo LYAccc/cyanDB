@@ -7,8 +7,10 @@
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <module name="CyanDB" />
-        <module name="cyanDB" />
       </profile>
     </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="CyanDB" target="8" />
+    </bytecodeTargetLevel>
   </component>
 </project>

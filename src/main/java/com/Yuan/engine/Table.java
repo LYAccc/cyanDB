@@ -36,6 +36,7 @@ public class Table {
     public Table(String file_address) throws IOException {
         this.file_address = file_address;
         file = new RandomAccessFile(file_address,"rw");
+        sparse_index = new TreeMap<>();
 
     }
     // set this table meta info
@@ -49,7 +50,10 @@ public class Table {
         }
 
     }
-
+    public void initialize() throws IOException {
+        set_min_max();
+        set_sparse_index();
+    }
     public void set_min_max() throws IOException {
 
            JSONObject json = read_json(max_min_key_start_offset,max_min_key_len_offset);
@@ -71,8 +75,8 @@ public class Table {
     }
 
     public void write_to_disk(int part_size, TreeMap<String,Value> cache_table, TreeMap<String,DataBlock> dataBlocks) throws IOException {
-        String min_key = dataBlocks.firstKey();
-        String max_key = dataBlocks.lastKey();
+        String min_key = cache_table.firstKey();
+        String max_key = cache_table.lastKey();
         JSONObject jsondata = new JSONObject();
         modified_json(jsondata);
         String first_value_key = null; // record current first value as the index of the data block.
@@ -88,18 +92,19 @@ public class Table {
             write_data_helper(file,jsondata,first_value_key,dataBlocks);
         }
         // write sparse index info to file
+        long sparse_index_start = file.getFilePointer();
         for (Map.Entry<String,DataBlock> entry: dataBlocks.entrySet()) jsondata.put(entry.getKey(),entry.getValue().to_json());
         byte[] databytes = jsondata.toString().getBytes(StandardCharsets.UTF_8);
         file.write(databytes);
-        long sparse_index_start = file.getFilePointer();
         long sparse_index_len = databytes.length;
         // write max_key and min_key info
         jsondata.clear();
         jsondata.put("min_key",min_key);
         jsondata.put("max_key",max_key);
+        long max_min_start = file.getFilePointer();
         databytes = jsondata.toString().getBytes(StandardCharsets.UTF_8);
         file.write(databytes);
-        long max_min_start = file.getFilePointer();
+
         long max_min_len = databytes.length;
         // write offset
          file.writeLong(max_min_start);
@@ -134,10 +139,13 @@ public class Table {
 
     }
     // need to handel "DELETE"
+    // if doesn't exist return null
     public Value query(String key) throws IOException {
         Map.Entry<String,DataBlock> entry = sparse_index.floorEntry(key);
         RandomAccessFile file = new RandomAccessFile(file_address,"rw");
-        if(entry == null) return null;
+        if(entry == null) {
+            return null;
+        }
         byte[] stream = new byte[entry.getValue().len];
         file.seek(Long.valueOf(entry.getValue().start));
         file.read(stream);
@@ -145,6 +153,7 @@ public class Table {
         Value res = null;
         try {
             res = new Value(json.getJSONObject(key));
+            if(res.command_type == Value.command.DELETE) return null;
         } catch (JSONException e){
             return null;
         }

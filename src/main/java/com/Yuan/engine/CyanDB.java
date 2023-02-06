@@ -1,6 +1,5 @@
 package com.Yuan.engine;
 
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -28,7 +27,7 @@ public class CyanDB {
 
 
 
-        private int store_size = 10;
+        private int store_size = 100;
 
         private CyanDB(String dir) throws IOException {
             this.working_directory = dir;
@@ -46,8 +45,10 @@ public class CyanDB {
             {
                 for (File file: files) {
                     String tn = file.getAbsolutePath();
-                    Long table_name = Long.valueOf(tn.substring(tn.lastIndexOf("\\" ) + 1,tn.lastIndexOf(".table")));
-                    tables.put(table_name,new Table(file.getAbsolutePath()));
+                    Long table_name = Long.valueOf(tn.substring(tn.lastIndexOf("\\" ) + 1,tn.lastIndexOf(".level")));
+                    Table cur_table = new Table(file.getAbsolutePath());
+                    cur_table.initialize();
+                    tables.put(table_name,cur_table);
                 }
 
             }
@@ -78,17 +79,24 @@ public class CyanDB {
                 v = new Value(Value.command.SET, value);
                 cache_table.put(key,v);
                 if(cache_table.size() >= store_size) {
-                    long cur_time = System.currentTimeMillis();
-                    Table new_table = new Table(working_directory+ cur_time +".level_0");
-                    new_table.write_to_disk(5,cache_table,dataBlocks);
-                    new_table.set_sparse_index();
-                    //record table info
-                    tables.put(cur_time,new_table);
+                   flush_memo_table_to_disk();
                 }
         }
-        public void Delete(String key){
+        public void flush_memo_table_to_disk() throws IOException {
+            if(cache_table.size() == 0) return;
+            long cur_time = System.currentTimeMillis();
+            Table new_table = new Table(working_directory+ cur_time +".level_0");
+            new_table.write_to_disk(5,cache_table,dataBlocks);
+            new_table.initialize();
+            //record table info
+            tables.put(cur_time,new_table);
+        }
+        public void Delete(String key) throws IOException {
                Value v = new Value(Value.command.DELETE);
                cache_table.put(key,v);
+            if(cache_table.size() >= store_size) {
+                flush_memo_table_to_disk();
+            }
         }
 
 
